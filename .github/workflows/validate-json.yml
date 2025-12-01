@@ -32,14 +32,16 @@ jobs:
       if: steps.changed-files.outputs.any_changed == 'true'
       run: |
         echo "Validating changed JSON files..."
-        for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-          echo "Checking $file"
-          python -m json.tool "$file" > /dev/null
-          if [ $? -eq 0 ]; then
-            echo "$file is valid"
-          else
-            echo "$file is invalid"
-            exit 1
+        echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr ' ' '\n' | while IFS= read -r file; do
+          if [ -n "$file" ]; then
+            echo "Checking $file"
+            python -m json.tool "$file" > /dev/null
+            if [ $? -eq 0 ]; then
+              echo "$file is valid"
+            else
+              echo "$file is invalid"
+              exit 1
+            fi
           fi
         done
         echo "All changed JSON files are valid!"
