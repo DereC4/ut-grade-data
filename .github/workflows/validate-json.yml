@@ -1,0 +1,51 @@
+name: Validate JSON Files
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    
+    - name: Get changed JSON files
+      id: changed-files
+      uses: tj-actions/changed-files@v41
+      with:
+        files: |
+          **.json
+    
+    - name: Validate changed JSON files
+      if: steps.changed-files.outputs.any_changed == 'true'
+      run: |
+        echo "Validating changed JSON files..."
+        echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr ' ' '\n' | while IFS= read -r file; do
+          if [ -n "$file" ]; then
+            echo "Checking $file"
+            python -m json.tool "$file" > /dev/null
+            if [ $? -eq 0 ]; then
+              echo "$file is valid"
+            else
+              echo "$file is invalid"
+              exit 1
+            fi
+          fi
+        done
+        echo "All changed JSON files are valid!"
+    
+    - name: No JSON files changed
+      if: steps.changed-files.outputs.any_changed != 'true'
+      run: echo "No JSON files were changed in this push"
